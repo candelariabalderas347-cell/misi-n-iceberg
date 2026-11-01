@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Misión Iceberg: Sistemas de Ecuaciones</title>
+    <style>
+        /* CSS Integrado - Estilo Arcade Educativo y Google Sites Optimized */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #1a2634;
+            color: #ffffff;
+        }
+
+        /* Layout Principal con Flexbox (PC: Horizontal, Móvil: Vertical) */
+        #game-container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            background-color: #38b6ff;
+        }
+
+        /* Contenedor del Canvas */
+        #canvas-wrapper {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+            background-color: #38a4d8;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background-color: #3eb4e8;
+        }
+
+        /* Panel de Control Lateral / Inferior */
+        #control-panel {
+            width: 340px;
+            height: 100%;
+            background: linear-gradient(180deg, #101d2a 0%, #1a2936 100%);
+            border-left: 4px solid #00d2ff;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            z-index: 20;
+            overflow-y: auto;
+        }
+
+        /* D-Pad Virtual Flotante (Móviles) */
+        #dpad-container {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            z-index: 15;
+            display: none; /* Se activa en pantallas táctiles/móviles */
+            opacity: 0.55;
+            transition: opacity 0.2s;
+        }
+
+        #dpad-container:active, #dpad-container:hover {
+            opacity: 0.85;
+        }
+
+        .dpad-btn {
+            position: absolute;
+            background: rgba(16, 29, 42, 0.8);
+            border: 2px solid #00d2ff;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            box-shadow: 0 0 8px rgba(0,210,255,0.4);
+        }
+
+        .dpad-btn:active {
+            background: #00d2ff;
+            color: #000;
+        }
+
+        #btn-up { top: 0; left: 45px; width: 50px; height: 45px; }
+        #btn-down { bottom: 0; left: 45px; width: 50px; height: 45px; }
+        #btn-left { top: 45px; left: 0; width: 45px; height: 50px; }
+        #btn-right { top: 45px; right: 0; width: 45px; height: 50px; }
+
+        /* Estilos UI Internos */
+        .header-box {
+            background: rgba(0, 210, 255, 0.1);
+            border: 1px solid #00d2ff;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .hud-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .timer-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 16px;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+        }
+
+        .math-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .equation {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 17px;
+            color: #00ffcc;
+            font-weight: bold;
+            text-align: center;
+            margin: 6px 0;
+            text-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-field label {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+
+        .input-field input {
+            background: #09121a;
+            border: 2px solid #00d2ff;
+            border-radius: 6px;
+            color: #fff;
+            padding: 8px;
+            font-size: 16px;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .input-field input:focus {
+            border-color: #00ffcc;
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.5);
+        }
+
+        .btn-fire {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-fire:active {
+            transform: scale(0.97);
+        }
+
+        /* Banner de Mensajes e Impacto Visual */
+        #flash-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s ease-out;
+            z-index: 10;
+        }
+
+        #message-toast {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 16px;
+            z-index: 25;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .toast-error { background: #e74c3c; color: #fff; }
+        .toast-success { background: #2ecc71; color: #fff; }
+
+        /* Pantallas superpuestas (GameOver/Victoria/Plot) */
+        .overlay-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 20, 30, 0.92);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .overlay-screen h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00d2ff;
+            text-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+        }
+
+        .overlay-screen p {
+            font-size: 16px;
+            color: #ccc;
+            max-width: 500px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .btn-restart {
+            background: #00d2ff;
+            color: #000;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,210,255,0.6);
+        }
+
+        /* Responsividad Flexbox para Móviles (Pantalla Pequeña) */
+        @media (max-width: 800px) {
+            #game-container {
+                flex-direction: column;
+            }
+            #control-panel {
+                width: 100%;
+                height: 48%;
+                border-left: none;
+                border-top: 4px solid #00d2ff;
+                padding: 10px;
+            }
+            #canvas-wrapper {
+                height: 52%;
+            }
+            #dpad-container {
+                display: block; /* Muestra D-pad en pantallas móviles */
+                bottom: 10px;
+                left: 10px;
+                width: 110px;
+                height: 110px;
+            }
+            #btn-up, #btn-down { width: 40px; height: 35px; left: 35px; }
+            #btn-left, #btn-right { width: 35px; height: 40px; top: 35px; }
+            #btn-up { top: 0; }
+            #btn-down { bottom: 0; }
+            #btn-left { left: 0; }
+            #btn-right { right: 0; }
+
+            .equation { font-size: 15px; }
+            .btn-fire { padding: 8px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- ÁREA DEL CANVAS DE JUEGO -->
+        <div id="canvas-wrapper">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- Efecto Parpadeo Rojo -->
+            <div id="flash-overlay"></div>
+
+            <!-- Toast de Mensajes -->
+            <div id="message-toast"></div>
+
+            <!-- D-PAD VIRTUAL FLOTANTE -->
+            <div id="dpad-container">
+                <div class="dpad-btn" id="btn-up">▲</div>
+                <div class="dpad-btn" id="btn-left">◄</div>
+                <div class="dpad-btn" id="btn-right">►</div>
+                <div class="dpad-btn" id="btn-down">▼</div>
+            </div>
+
+            <!-- PANTALLA INICIAL / OVERLAYS -->
+            <div id="overlay-screen" class="overlay-screen">
+                <h1 id="overlay-title">MISIÓ N ICEBERG</h1>
+                <p id="overlay-desc">Esquiva los icebergs navegando con tu barco (WASD o D-Pad táctil). Para destruir a los enemigos, resuelve el sistema de ecuaciones y dispara los cañones ingresando las coordenadas X e Y exactas.</p>
+                <button class="btn-restart" id="btn-start" onclick="startGame()">¡INICIAR MISIÓN!</button>
+            </div>
+        </div>
+
+        <!-- PANEL DE CONTROL / EVALUACIÓN MATEMÁTICA -->
+        <div id="control-panel">
+            <div class="header-box">
+                <h2 style="font-size:16px; color:#00d2ff; margin-bottom: 4px;">RADAR DE NAVEGACIÓN</h2>
+                <div class="hud-row">
+                    <span>NIVEL: <span id="hud-level" style="color:#00ffcc">1</span>/3</span>
+                    <span class="timer-badge">⏱️ <span id="hud-timer">120</span>s</span>
+                </div>
+            </div>
+
+            <div class="math-card">
+                <p style="font-size: 12px; color: #aaa; text-align: center; margin-bottom: 6px;">SISTEMA DE ECUACIONES OBJETIVO</p>
+                <div class="equation" id="eq1">Ax + By = C</div>
+                <div class="equation" id="eq2">Dx + Ey = F</div>
+            </div>
+
+            <div class="math-card">
+                <p style="font-size: 12px; color: #aaa; margin-bottom: 6px;">CALCULAR COORDENADAS DEL ENEMIGO:</p>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="input-x">Coordenada X:</label>
+                        <input type="number" id="input-x" step="any" inputmode="decimal" placeholder="0">
+                    </div>
+                    <div class="input-field">
+                        <label for="input-y">Coordenada Y:</label>
+                        <input type="number" id="input-y" step="any" inputmode="decimal" placeholder="0">
+                    </div>
+                </div>
+                <button class="btn-fire" onclick="fireCannons()">💥 ¡DISPARAR CAÑONES!</button>
+            </div>
+
+            <div style="font-size: 11px; color: #7a8b9e; text-align: center; margin-top: auto; padding-top: 5px;">
+                Evita las colisiones (-10s) mientras realizas tus cálculos.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // --- ZONA DE CONFIGURACIÓN PARA ESTUDIANTES / MODDING ZONE ---
+        // =========================================================================
+        // Profesores y alumnos pueden editar este arreglo para modificar o crear
+        // nuevos retos matemáticos, cambiar velocidades, colores y enemigos.
+        // =========================================================================
+
+        const STUDENT_CONFIG = {
+            levels: [
+                {
+                    levelNumber: 1,
+                    // Ecuación 1: 1x + 1y = 5
+                    // Ecuación 2: 1x - 1y = 1
+                    // Solución: X = 3, Y = 2
+                    eq1: { A: 1, B: 1, C: 5, text: "x + y = 5" },
+                    eq2: { A: 1, B: -1, C: 1, text: "x - y = 1" },
+                    solution: { x: 3, y: 2 },
+                    icebergCount: 3,
+                    icebergSpeed: 1.5,
+                    icebergColor: "#ffffff"
+                },
+                {
+                    levelNumber: 2,
+                    // Ecuación 1: 2x + 1y = 8
+                    // Ecuación 2: 1x + 2y = 7
+                    // Solución: X = 3, Y = 2 -> (Cambiado para variación pedagógica):
+                    // Eq1: 2x + y = 7
+                    // Eq2: x - y = 2
+                    // Solución: X = 3, Y = 1
+                    eq1: { A: 2, B: 1, C: 7, text: "2x + y = 7" },
+                    eq2: { A: 1, B: -1, C: 2, text: "x - y = 2" },
+                    solution: { x: 3, y: 1 },
+                    icebergCount: 4,
+                    icebergSpeed: 2.2,
+                    icebergColor: "#e0f7fa"
+                },
+                {
+                    levelNumber: 3,
+                    // Ecuación 1: 3x + 2y = 12
+                    // Ecuación 2: 1x - 1y = 1
+                    // Solución: X = 2.8... -> Usemos enteros limpios:
+                    // Eq1: 3x - y = 5
+                    // Eq2: 2x + 3y = 7
+                    // Solución: X = 2, Y = 1
+                    eq1: { A: 3, B: -1, C: 5, text: "3x - y = 5" },
+                    eq2: { A: 2, B: 3, C: 7, text: "2x + 3y = 7" },
+                    solution: { x: 2, y: 1 },
+                    icebergCount: 5,
+                    icebergSpeed: 2.8,
+                    icebergColor: "#b2ebf2"
+                }
+            ],
+            globalTimePerLevel: 120, // Tiempo límite en segundos
+            collisionPenaltySeconds: 10 // Penalización de tiempo por chocar
+        };
+
+        // =========================================================================
+        // --- MOTOR DEL JUEGO (GAME ENGINE & CANVAS) ---
+        // =========================================================================
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Estado del Juego
+        let currentLevelIdx = 0;
+        let timeRemaining = STUDENT_CONFIG.globalTimePerLevel;
+        let timerInterval = null;
+        let isGameRunning = false;
+        let isPlottingAnimation = false;
+        let animationProgress = 0;
+
+        // Teclas activas
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+
+        // Nave / Jugador (Barco Gris)
+        const player = {
+            x: 100,
+            y: 100,
+            width: 36,
+            height: 22,
+            speed: 3.5,
+            angle: 0
+        };
+
+        // Arreglos de Entidades
+        let icebergs = [];
+        let particles = [];
+        let waves = [];
+
+        // Inicialización y Ajuste de Pantalla
+        function resizeCanvas() {
+            const wrapper = document.getElementById('canvas-wrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Generación de olas decorativas en el mar
+        function initWaves() {
+            waves = [];
+            for (let i = 0; i < 25; i++) {
+                waves.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    length: 15 + Math.random() * 25,
+                    speed: 0.3 + Math.random() * 0.5
+                });
+            }
+        }
+
+        // Crear Enemigos (Icebergs)
+        function spawnIcebergs(count, speed, color) {
+            icebergs = [];
+            for (let i = 0; i < count; i++) {
+                let size = 30 + Math.random() * 15;
+                icebergs.push({
+                    x: Math.random() * (canvas.width - 200) + 150,
+                    y: Math.random() * (canvas.height - 100) + 50,
+                    radius: size,
+                    vx: (Math.random() < 0.5 ? -1 : 1) * (speed * (0.8 + Math.random() * 0.4)),
+                    vy: (Math.random() < 0.5 ? -1 : 1) * (speed * (0.8 + Math.random() * 0.4)),
+                    color: color,
+                    rotation: Math.random() * Math.PI * 2,
+                    vRot: (Math.random() - 0.5) * 0.02
+                });
+            }
+        }
+
+        // Cargar Nivel Actual
+        function loadLevel(levelIdx) {
+            const lvl = STUDENT_CONFIG.levels[levelIdx];
+            document.getElementById('hud-level').innerText = lvl.levelNumber;
+            document.getElementById('eq1').innerText = lvl.eq1.text;
+            document.getElementById('eq2').innerText = lvl.eq2.text;
+            document.getElementById('input-x').value = '';
+            document.getElementById('input-y').value = '';
+
+            timeRemaining = STUDENT_CONFIG.globalTimePerLevel;
+            document.getElementById('hud-timer').innerText = timeRemaining;
+
+            player.x = canvas.width * 0.15;
+            player.y = canvas.height * 0.5;
+
+            spawnIcebergs(lvl.icebergCount, lvl.icebergSpeed, lvl.icebergColor);
+        }
+
+        // Bucle Principal de Controladores
+        window.addEventListener('keydown', e => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+        });
+
+        // Configuración de D-Pad Táctil
+        function setupDPad() {
+            const bindTouch = (id, keyName) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[keyName] = true; });
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[keyName] = false; });
+                btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[keyName] = true; });
+                btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[keyName] = false; });
+            };
+
+            bindTouch('btn-up', 'w');
+            bindTouch('btn-left', 'a');
+            bindTouch('btn-down', 's');
+            bindTouch('btn-right', 'd');
+        }
+
+        // Lógica de Movimiento y Física
+        function update() {
+            if (!isGameRunning || isPlottingAnimation) return;
+
+            // Movimiento del Jugador
+            let dx = 0, dy = 0;
+            if (keys.w || keys.ArrowUp) dy -= 1;
+            if (keys.s || keys.ArrowDown) dy += 1;
+            if (keys.a || keys.ArrowLeft) dx -= 1;
+            if (keys.d || keys.ArrowRight) dx += 1;
+
+            if (dx !== 0 || dy !== 0) {
+                // Normalizar
+                let len = Math.hypot(dx, dy);
+                player.x += (dx / len) * player.speed;
+                player.y += (dy / len) * player.speed;
+                player.angle = Math.atan2(dy, dx);
+            }
+
+            // Mantenimiento de límites dentro del Canvas
+            player.x = Math.max(player.width, Math.min(canvas.width - player.width, player.x));
+            player.y = Math.max(player.height, Math.min(canvas.height - player.height, player.y));
+
+            // Actualizar Icebergs
+            icebergs.forEach(iceberg => {
+                iceberg.x += iceberg.vx;
+                iceberg.y += iceberg.vy;
+                iceberg.rotation += iceberg.vRot;
+
+                // Rebote en bordes
+                if (iceberg.x - iceberg.radius < 0 || iceberg.x + iceberg.radius > canvas.width) iceberg.vx *= -1;
+                if (iceberg.y - iceberg.radius < 0 || iceberg.y + iceberg.radius > canvas.height) iceberg.vy *= -1;
+
+                // Colisión con el Jugador
+                let dist = Math.hypot(player.x - iceberg.x, player.y - iceberg.y);
+                if (dist < iceberg.radius + player.width / 2) {
+                    triggerCollision(iceberg);
+                }
+            });
+
+            // Olas
+            waves.forEach(w => {
+                w.x -= w.speed;
+                if (w.x < -w.length) {
+                    w.x = canvas.width + w.length;
+                    w.y = Math.random() * canvas.height;
+                }
+            });
+
+            // Partículas
+            particles.forEach((p, idx) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.02;
+                if (p.alpha <= 0) particles.splice(idx, 1);
+            });
+        }
+
+        // Penalización por choque
+        let lastCollisionTime = 0;
+        function triggerCollision(iceberg) {
+            let now = Date.now();
+            if (now - lastCollisionTime < 1000) return; // Cooldown de 1s para evitar perder todo de golpe
+            lastCollisionTime = now;
+
+            // Restar tiempo
+            timeRemaining = Math.max(0, timeRemaining - STUDENT_CONFIG.collisionPenaltySeconds);
+            document.getElementById('hud-timer').innerText = timeRemaining;
+
+            // Parpadeo rojo
+            const flash = document.getElementById('flash-overlay');
+            flash.style.opacity = '1';
+            setTimeout(() => { flash.style.opacity = '0'; }, 200);
+
+            showToast("¡COLISIÓN! -10 Segundos", "error");
+
+            // Empujar levemente al barco
+            player.x -= iceberg.vx * 10;
+            player.y -= iceberg.vy * 10;
+        }
+
+        // RENDERIZADO VISUAL CON PRIMITIVAS DE CANVAS
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Fondo de Mar
+            ctx.fillStyle = '#38a4d8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Olas del mar
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            waves.forEach(w => {
+                ctx.beginPath();
+                ctx.moveTo(w.x, w.y);
+                ctx.quadraticCurveTo(w.x + w.length / 2, w.y - 4, w.x + w.length, w.y);
+                ctx.stroke();
+            });
+
+            // 2. Dibujar Icebergs (Enemigos)
+            icebergs.forEach(iceberg => {
+                ctx.save();
+                ctx.translate(iceberg.x, iceberg.y);
+                ctx.rotate(iceberg.rotation);
+
+                // Polígono irregular de Iceberg
+                ctx.fillStyle = iceberg.color;
+                ctx.strokeStyle = '#80deea';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                const points = 7;
+                for (let i = 0; i < points; i++) {
+                    let a = (i / points) * Math.PI * 2;
+                    let r = iceberg.radius * (0.8 + Math.sin(i * 3) * 0.2);
+                    let px = Math.cos(a) * r;
+                    let py = Math.sin(a) * r;
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Detalles / Brillantez interna
+                ctx.fillStyle = 'rgba(0, 229, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(-iceberg.radius * 0.2, -iceberg.radius * 0.2, iceberg.radius * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+
+            // 3. Dibujar Barco del Jugador (Color Gris Primitiva)
+            ctx.save();
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
+
+            // Estela de agua
+            ctx.fillStyle = 'rgba(255,255,255,0.4)';
+            ctx.beginPath();
+            ctx.arc(-player.width/2 - 5, 0, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Casco del barco (Gris principal)
+            ctx.fillStyle = '#78909c';
+            ctx.strokeStyle = '#37474f';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-player.width / 2, -player.height / 2);
+            ctx.lineTo(player.width / 4, -player.height / 2);
+            ctx.lineTo(player.width / 2, 0); // Proa afilada
+            ctx.lineTo(player.width / 4, player.height / 2);
+            ctx.lineTo(-player.width / 2, player.height / 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Cabina Superior (Gris Oscuro)
+            ctx.fillStyle = '#455a64';
+            ctx.fillRect(-player.width / 4, -player.height / 4, player.width / 3, player.height / 2);
+
+            // Detalle / Ventana
+            ctx.fillStyle = '#00e5ff';
+            ctx.fillRect(0, -player.height / 6, 4, player.height / 3);
+
+            ctx.restore();
+
+            // 4. Partículas
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+
+            // 5. Animación de Plano Cartesiano Neón en caso de Ataque Correcto
+            if (isPlottingAnimation) {
+                renderNeonCartesianPlot();
+            }
+        }
+
+        // ANIMACIÓN MATEMÁTICA: Plano Cartesiano Neón
+        function renderNeonCartesianPlot() {
+            ctx.save();
+
+            // Overlay Oscuro Neón
+            ctx.fillStyle = 'rgba(5, 15, 25, 0.85)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 35; // Pixeles por unidad cartesiana
+
+            // Rejilla Neón
+            ctx.strokeStyle = 'rgba(0, 210, 255, 0.15)';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x < canvas.width; x += scale) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += scale) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            // Ejes Principales (X / Y)
+            ctx.strokeStyle = '#00d2ff';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#00d2ff';
+            ctx.shadowBlur = 10;
+
+            // Eje X
+            ctx.beginPath(); ctx.moveTo(0, centerY); ctx.lineTo(canvas.width, centerY); ctx.stroke();
+            // Eje Y
+            ctx.beginPath(); ctx.moveTo(centerX, 0); ctx.lineTo(centerX, canvas.height); ctx.stroke();
+
+            const lvl = STUDENT_CONFIG.levels[currentLevelIdx];
+            const targetX = lvl.solution.x;
+            const targetY = lvl.solution.y;
+
+            // Renderizar Recta 1 (Verde Neón)
+            ctx.strokeStyle = '#00ffcc';
+            ctx.shadowColor = '#00ffcc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            let r1_x1 = -10, r1_y1 = (lvl.eq1.C - lvl.eq1.A * r1_x1) / lvl.eq1.B;
+            let r1_x2 = 10, r1_y2 = (lvl.eq1.C - lvl.eq1.A * r1_x2) / lvl.eq1.B;
+            
+            // Interpolar para animación
+            let currR1_X2 = r1_x1 + (r1_x2 - r1_x1) * animationProgress;
+            let currR1_Y2 = r1_y1 + (r1_y2 - r1_y1) * animationProgress;
+
+            ctx.moveTo(centerX + r1_x1 * scale, centerY - r1_y1 * scale);
+            ctx.lineTo(centerX + currR1_X2 * scale, centerY - currR1_Y2 * scale);
+            ctx.stroke();
+
+            // Renderizar Recta 2 (Magenta Neón)
+            ctx.strokeStyle = '#ff007f';
+            ctx.shadowColor = '#ff007f';
+            ctx.beginPath();
+            let r2_x1 = -10, r2_y1 = (lvl.eq2.C - lvl.eq2.A * r2_x1) / lvl.eq2.B;
+            let r2_x2 = 10, r2_y2 = (lvl.eq2.C - lvl.eq2.A * r2_x2) / lvl.eq2.B;
+
+            let currR2_X2 = r2_x1 + (r2_x2 - r2_x1) * animationProgress;
+            let currR2_Y2 = r2_y1 + (r2_y2 - r2_y1) * animationProgress;
+
+            ctx.moveTo(centerX + r2_x1 * scale, centerY - r2_y1 * scale);
+            ctx.lineTo(centerX + currR2_X2 * scale, centerY - currR2_Y2 * scale);
+            ctx.stroke();
+
+            // Punto de Intersección
+            if (animationProgress > 0.8) {
+                let px = centerX + targetX * scale;
+                let py = centerY - targetY * scale;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(px, py, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Etiqueta de solución
+                ctx.font = 'bold 16px Courier New';
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillText(`Solución: (${targetX}, ${targetY})`, px + 15, py - 15);
+            }
+
+            ctx.restore();
+        }
+
+        // Bucle Continuo
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // VALIDACIÓN MATEMÁTICA Y ATAQUE
+        function fireCannons() {
+            if (!isGameRunning || isPlottingAnimation) return;
+
+            const inputX = parseFloat(document.getElementById('input-x').value);
+            const inputY = parseFloat(document.getElementById('input-y').value);
+
+            if (isNaN(inputX) || isNaN(inputY)) {
+                showToast("Ingresa valores numéricos en X e Y", "error");
+                return;
+            }
+
+            const currentSol = STUDENT_CONFIG.levels[currentLevelIdx].solution;
+
+            // Validación con margen de error pequeño por flotantes
+            if (Math.abs(inputX - currentSol.x) < 0.01 && Math.abs(inputY - currentSol.y) < 0.01) {
+                // ACCIÓN DE ÉXITO
+                showToast("¡SISTEMA RESUELTO! Apuntando cañones...", "success");
+                startPlotAnimation();
+            } else {
+                // ACCIÓN DE FALLO
+                showToast("❌ COORDENADAS INCORRECTAS - El disparo falló", "error");
+                document.getElementById('input-x').value = '';
+                document.getElementById('input-y').value = '';
+
+                // Agitar pantalla
+                const wrapper = document.getElementById('canvas-wrapper');
+                wrapper.style.transform = 'translate(5px, 5px)';
+                setTimeout(() => wrapper.style.transform = 'translate(-5px, -5px)', 50);
+                setTimeout(() => wrapper.style.transform = 'translate(0, 0)', 100);
+            }
+        }
+
+        // Animación de Intersección
+        function startPlotAnimation() {
+            isPlottingAnimation = true;
+            animationProgress = 0;
+
+            let plotInterval = setInterval(() => {
+                animationProgress += 0.05;
+                if (animationProgress >= 1) {
+                    clearInterval(plotInterval);
+                    
+                    // Explotar enemigos
+                    explodeIcebergs();
+
+                    setTimeout(() => {
+                        isPlottingAnimation = false;
+                        nextLevel();
+                    }, 1800);
+                }
+            }, 50);
+        }
+
+        // Efecto Visual de Explosión
+        function explodeIcebergs() {
+            icebergs.forEach(iceberg => {
+                for (let i = 0; i < 20; i++) {
+                    particles.push({
+                        x: iceberg.x,
+                        y: iceberg.y,
+                        vx: (Math.random() - 0.5) * 8,
+                        vy: (Math.random() - 0.5) * 8,
+                        radius: 3 + Math.random() * 5,
+                        color: i % 2 === 0 ? '#00e5ff' : '#ffffff',
+                        alpha: 1
+                    });
+                }
+            });
+            icebergs = [];
+        }
+
+        // Avance de Nivel / Victoria
+        function nextLevel() {
+            currentLevelIdx++;
+            if (currentLevelIdx < STUDENT_CONFIG.levels.length) {
+                loadLevel(currentLevelIdx);
+                showToast(`¡Nivel ${currentLevelIdx + 1} Iniciado!`, "success");
+            } else {
+                // ¡VICTORIA TOTAL!
+                endGame(true);
+            }
+        }
+
+        // Control del Temporizador
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isGameRunning || isPlottingAnimation) return;
+
+                timeRemaining--;
+                document.getElementById('hud-timer').innerText = timeRemaining;
+
+                if (timeRemaining <= 0) {
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        // Finalización del Juego (Derrota / Victoria)
+        function endGame(isVictory) {
+            isGameRunning = false;
+            clearInterval(timerInterval);
+
+            const overlay = document.getElementById('overlay-screen');
+            const title = document.getElementById('overlay-title');
+            const desc = document.getElementById('overlay-desc');
+            const btn = document.getElementById('btn-start');
+
+            overlay.style.display = 'flex';
+
+            if (isVictory) {
+                title.innerText = "¡SALVASTE A TU TRIPULACIÓN!";
+                title.style.color = "#00ffcc";
+                desc.innerText = "¡Felicidades, Capitán! Has resuelto todos los sistemas de ecuaciones con precisión y guiado al barco de forma segura a través del campo de hielo.";
+                btn.innerText = "JUGAR DE NUEVO";
+            } else {
+                title.innerText = "TU BARCO SE HUNDIÓ";
+                title.style.color = "#ff416c";
+                desc.innerText = "El tiempo se ha agotado o los impactos destruyeron tu nave antes de poder resolver el sistema de ecuaciones.";
+                btn.innerText = "REINTENTAR MISIÓN";
+            }
+        }
+
+        // Iniciar Juego
+        function startGame() {
+            document.getElementById('overlay-screen').style.display = 'none';
+            currentLevelIdx = 0;
+            loadLevel(currentLevelIdx);
+            isGameRunning = true;
+            startTimer();
+        }
+
+        // Utilidad Toast Notification
+        function showToast(msg, type) {
+            const toast = document.getElementById('message-toast');
+            toast.innerText = msg;
+            toast.className = type === "error" ? "toast-error" : "toast-success";
+            toast.style.display = 'block';
+
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2500);
+        }
+
+        // Inicialización en Carga de Ventana
+        window.onload = function() {
+            resizeCanvas();
+            initWaves();
+            setupDPad();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
